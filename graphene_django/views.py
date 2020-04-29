@@ -432,4 +432,4 @@ def _get_auth_header(iQLView, request, graphiql_arguments):
 
     context = {"form": form}
 
-    return render(request, "graphene/header_jwt_auth.html", context)
+    return TemplateResponse(request, "graphene/header_jwt_auth.html", context)
