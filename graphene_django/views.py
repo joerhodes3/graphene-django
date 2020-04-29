@@ -4,7 +4,7 @@ import re
 
 import six
 from django.template.response import TemplateResponse
-from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseNotAllowed
+from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.http.response import HttpResponseBadRequest
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -191,16 +191,16 @@ class GraphQLView(APIView):
                 # output type from URL -- for unit tests
                 graphene_arguments.update({"HTTP_ACCEPT": request.GET.get("HTTP_ACCEPT",'')})
                 # TODO: get URL AUTH (optional)
-                # TODO: get URL query -- ? any mutations ? -- !! why so short (does it work in 2.8.2?) !!
+                # TODO: get URL query -- ? any mutations ? -- !! why so short (also fail in 2.9.1, is unit test)
                 graphene_arguments.update({"query": request.GET.get("query",'')})
-                    
-                # return self.???  # render_graphiql(request, graphiql_arguments)
 
                 content_type = "text/html"
                 if "json" in graphene_arguments["HTTP_ACCEPT"]:
                     content_type = graphene_arguments["HTTP_ACCEPT"]
 
                 result, status_code = self.get_response(request, graphene_arguments)
+                
+                #TODO: run query -- self.get_response()
 
             return HttpResponse(status=status_code, content=result, content_type=content_type)
 
