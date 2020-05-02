@@ -30,7 +30,9 @@ def batch_url_string(**url_params):
 
 
 def response_json(response):
-    return json.loads(response.content.decode())
+    print(type(json.loads(response)[0]))
+    print(json.loads(response)[0])
+    return json.loads(response)[0]
 
 
 j = lambda **kwargs: json.dumps(kwargs)
@@ -40,12 +42,9 @@ jl = lambda **kwargs: json.dumps([kwargs])
 @pytest.mark.django_db
 def test_graphiql_is_enabled(client):
     from django.conf import settings
-    print("**APPS**%s" % settings.INSTALLED_APPS)
-    print("**MIDDLEWARE**%s" % settings.MIDDLEWARE)
-    # ?? HOWTO get URL ??
-    print(client.__dict__)
 
     response = client.get(url_string(), HTTP_ACCEPT="text/html")
+
     assert response.status_code == 200
     assert response["Content-Type"].split(";")[0] == "text/html"
 
@@ -58,8 +57,7 @@ def test_qfactor_graphiql(client):
             HTTP_ACCEPT="text/html",
         )
     )
-    print("**** test_qfactor_graphigl -- PASS")
-    print(client)
+
     assert response.status_code == 200
     assert response["Content-Type"].split(";")[0] == "text/html"
 
@@ -72,11 +70,11 @@ def test_qfactor_json(client):
             HTTP_ACCEPT="application/json",
         )
     ).json()
-    # why fail?????
-    print("**** test_qfactor_json -- PASS now?? -- JSON in veiw()")
-    assert response.status_code == 200
-    assert response["Content-Type"].split(";")[0] == "application/json"
-    assert response_json(response) == {"data": {"test": "Hello World"}}
+
+    # returns just json as __dict__
+    expected_dict = {"data": {"test": "Hello World"}}
+    # directly compare all key,value for __dict__
+    assert response == expected_dict
 
 
 @pytest.mark.django_db
@@ -84,7 +82,10 @@ def test_allows_get_with_query_param(client):
     response = client.get(url_string(query="{test}"))
 
     assert response.status_code == 200
-    assert response_json(response) == {"data": {"test": "Hello World"}}
+    # returns just json as __dict__
+    expected_dict = {"data": {"test": "Hello World"}}
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db
@@ -93,11 +94,14 @@ def test_allows_get_with_variable_values(client):
         url_string(
             query="query helloWho($who: String){ test(who: $who) }",
             variables=json.dumps({"who": "Dolly"}),
+            HTTP_ACCEPT="application/json",
         )
     )
 
     assert response.status_code == 200
-    assert response_json(response) == {"data": {"test": "Hello Dolly"}}
+    expected_dict = {"data": {"test": "Hello Dolly"}}
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db
@@ -117,9 +121,9 @@ def test_allows_get_with_operation_name(client):
     )
 
     assert response.status_code == 200
-    assert response_json(response) == {
-        "data": {"test": "Hello World", "shared": "Hello Everyone"}
-    }
+    expected_dict = {"data": {"test": "Hello World", "shared": "Hello Everyone"}}
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db
@@ -127,7 +131,7 @@ def test_reports_validation_errors(client):
     response = client.get(url_string(query="{ test, unknownOne, unknownTwo }"))
 
     assert response.status_code == 400
-    assert response_json(response) == {
+    expected_dict = {
         "errors": [
             {
                 "message": 'Cannot query field "unknownOne" on type "QueryRoot".',
@@ -139,6 +143,8 @@ def test_reports_validation_errors(client):
             },
         ]
     }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db

@@ -206,7 +206,7 @@ class GraphQLView(APIView):
                     content_type = output
                 else:
                     content_type = "application/json"
-                # query -- unit test !! why so short (also fail in 2.9.1, is unit test)
+                # query -- !! unit test (also fail in 2.9.1, is unit test)
                 query = request.GET.get("query",None)
                 if query:
                     graphene_arguments.update({"query": query})
@@ -216,7 +216,7 @@ class GraphQLView(APIView):
                     if query:
                         graphene_arguments.update({"query": query})
                     else:
-                        # iql -- is in body()
+                        # graphiql is in body()
                         body = json.loads(request.body)
                         if "query" in body:
                             graphene_arguments.update({"query": body["query"]})
