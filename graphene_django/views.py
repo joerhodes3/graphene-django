@@ -4,7 +4,7 @@ import re
 
 import six
 from django.template.response import TemplateResponse
-from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseNotAllowed
+from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.http.response import HttpResponseBadRequest
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -173,6 +173,7 @@ class GraphQLView(APIView):
                 graphiql_arguments.update({"auth_header": None})
                 return self.render_graphiql(request, graphiql_arguments)
             elif show_graphiql_headers:
+                # headers [html form & iql -- first http]
                 return _get_auth_header(self, request, graphiql_arguments)
             elif self.batch:
                 responses = [self.get_response(request, entry) for entry in data]
@@ -186,20 +187,48 @@ class GraphQLView(APIView):
                 )
                 content_type = "application/json"
             else:
-                # not interactive,  return data, NOT graphiql")
+                # not interactive, return data -- curl() or 2nd http (eval graphiql)
+                #    From both curl and http, but what about GET (url unit test)
+                if not ("HTTP_AUTHORIZATION" in request.META):
+                    try:
+                        # iql put in request.session -- restore AUTH
+                        request.META.update({"HTTP_AUTHORIZATION": request.session["HTTP_AUTHORIZATION"]})
+                    except:
+                        # no AUTH
+                        request.META.update({"HTTP_AUTHORIZATION": None})
+                #print(request.META["HTTP_AUTHORIZATION"])
+
                 graphene_arguments = {}
                 # output type from URL -- for unit tests
-                graphene_arguments.update({"HTTP_ACCEPT": request.GET.get("HTTP_ACCEPT",'')})
-                # TODO: get URL AUTH (optional)
-                # TODO: get URL query -- ? any mutations ? -- !! why so short (does it work in 2.8.2?) !!
-                graphene_arguments.update({"query": request.GET.get("query",'')})
-                    
-                # return self.???  # render_graphiql(request, graphiql_arguments)
+                output = request.GET.get("HTTP_ACCEPT",None)
+                if output:
+                    # override from unit test for 'text/html' -- will usually return JSON by default
+                    content_type = output
+                else:
+                    content_type = "application/json"
+                # URL args (unit test)
+                print(request.method)
+                print(request.body)
+                variables = request.GET.get("variables",None)
+                if variables:
+                    graphene_arguments.update({"variables": variables})
+                else:
+                    # get from curl and graphiql
+                    if request.method == "POST":
+                        body = json.loads(request.body)
+                        if "variables" in body:
+                            graphene_arguments.update({"variables": body["variables"]})
+                query = request.GET.get("query",None)
+                if query:
+                    graphene_arguments.update({"query": query})
+                else:
+                    # get from curl and graphiql
+                    if request.method == "POST":
+                        body = json.loads(request.body)
+                        if "query" in body:
+                            graphene_arguments.update({"query": body["query"]})
 
-                content_type = "text/html"
-                if "json" in graphene_arguments["HTTP_ACCEPT"]:
-                    content_type = graphene_arguments["HTTP_ACCEPT"]
-
+                print(graphene_arguments)
                 result, status_code = self.get_response(request, graphene_arguments)
 
             return HttpResponse(status=status_code, content=result, content_type=content_type)
@@ -212,12 +241,10 @@ class GraphQLView(APIView):
             )
             return response
 
-    def get_response(self, request, data, show_graphiql=False):
+    def get_response(self, request, data):
         query, variables, operation_name, id = self.get_graphql_params(request, data)
 
-        execution_result = self.execute_graphql_request(
-            request, data, query, variables, operation_name, show_graphiql
-        )
+        execution_result = self.execute_graphql_request(request, data, query, variables, operation_name)
 
         status_code = 200
         if execution_result:
@@ -237,7 +264,7 @@ class GraphQLView(APIView):
                 response["id"] = id
                 response["status"] = status_code
 
-            result = self.json_encode(request, response, pretty=show_graphiql)
+            result = self.json_encode(request, response, pretty=False)
         else:
             result = None
 
@@ -297,12 +324,8 @@ class GraphQLView(APIView):
 
         return {}
 
-    def execute_graphql_request(
-        self, request, data, query, variables, operation_name, show_graphiql=False
-    ):
+    def execute_graphql_request(self, request, data, query, variables, operation_name):
         if not query:
-            if show_graphiql:
-                return None
             raise HttpError(HttpResponseBadRequest("Must provide query string."))
 
         try:
@@ -314,8 +337,6 @@ class GraphQLView(APIView):
         if request.method.lower() == "get":
             operation_type = document.get_operation_type(operation_name)
             if operation_type and operation_type != "query":
-                if show_graphiql:
-                    return None
 
                 raise HttpError(
                     HttpResponseNotAllowed(
@@ -333,10 +354,6 @@ class GraphQLView(APIView):
                 # executor is not a valid argument in all backends
                 extra_options["executor"] = self.executor
 
-            # put auth in session for the schema.py to use
-            request.META.update(
-                {"HTTP_AUTHORIZATION": request.session["HTTP_AUTHORIZATION"]}
-            )
             return document.execute(
                 root_value=self.get_root_value(request),
                 variable_values=variables,
@@ -432,4 +449,4 @@ def _get_auth_header(iQLView, request, graphiql_arguments):
 
     context = {"form": form}
 
-    return render(request, "graphene/header_jwt_auth.html", context)
+    return TemplateResponse(request, "graphene/header_jwt_auth.html", context)
