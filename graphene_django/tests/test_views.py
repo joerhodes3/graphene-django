@@ -323,9 +323,9 @@ def test_batch_supports_post_json_query_with_string_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
-    expected_dict = {"id": 1, "data": {"test": "Hello Dolly"}, 'status': 200}
+    expected_dict = [{"id": 1, "data": {"test": "Hello Dolly"}, 'status': 200}]
     # directly compare all key,value for __dict__ -- NOTE responce is list of stuff!
-    assert response.json()[0] == expected_dict
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db
@@ -547,3 +547,169 @@ def test_inherited_class_with_attributes_works(client):
 '''
 
 
+@pytest.mark.django_db
+def test_handles_field_errors_caught_by_graphql(client):
+    response = client.get(url_string(query="{thrower}"))
+    assert response.status_code == 200
+    # returns just json as list of __dict__
+    expected_dict = {
+        "data": None,
+        "errors": [
+            {
+                "locations": [{"column": 2, "line": 1}],
+                "path": ["thrower"],
+                "message": "Throws!",
+            }
+        ],
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_handles_syntax_errors_caught_by_graphql(client):
+    response = client.get(url_string(query="syntaxerror"))
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [
+            {
+                "locations": [{"column": 1, "line": 1}],
+                "message": "Syntax Error GraphQL (1:1) "
+                'Unexpected Name "syntaxerror"\n\n1: syntaxerror\n   ^\n',
+            }
+        ]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+
+@pytest.mark.django_db
+def test_handles_errors_caused_by_a_lack_of_query(client):
+    response = client.get(url_string())
+
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "Must provide query string."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_handles_not_expected_json_bodies(client):
+    response = client.post(url_string(), "[]", "application/json")
+
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "The received data is not a valid JSON query."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+
+@pytest.mark.django_db
+def test_handles_invalid_json_bodies(client):
+    response = client.post(url_string(), "[oh}", "application/json")
+
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "POST body sent invalid JSON."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_handles_django_request_error(client, monkeypatch):
+    def mocked_read(*args):
+        raise IOError("foo-bar")
+
+    monkeypatch.setattr("django.http.request.HttpRequest.read", mocked_read)
+
+    valid_json = json.dumps(dict(foo="bar"))
+    response = client.post(url_string(), valid_json, "application/json")
+
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {"errors": [{"message": "foo-bar"}]}
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+
+'''
+@pytest.mark.django_db
+def test_handles_plain_post_text(client):
+    response = client.post(
+        url_string(variables=json.dumps({"who": "Dolly"})),
+        "query helloWho($who: String){ test(who: $who) }",
+        "text/plain",
+    )
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "Must provide query string."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+'''
+
+
+@pytest.mark.django_db
+def test_handles_poorly_formed_variables(client):
+    response = client.get(
+        url_string(
+            query="query helloWho($who: String){ test(who: $who) }", variables="who:You"
+        )
+    )
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "Variables are invalid JSON."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_handles_unsupported_http_methods(client):
+    response = client.put(url_string(query="{test}"))
+
+    assert response.status_code == 405
+    assert response["Allow"] == "GET, POST"
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "GraphQL only supports GET and POST requests."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_handles_incomplete_json_bodies(client):
+    response = client.post(url_string(), '{"query":', "application/json")
+
+    assert response.status_code == 400
+    # returns just json as list of __dict__
+    expected_dict = {
+        "errors": [{"message": "POST body sent invalid JSON."}]
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+
+
+@pytest.mark.django_db
+def test_passes_request_into_context_request(client):
+    response = client.get(url_string(query="{request}", q="testing"))
+
+    assert response.status_code == 200
+    # returns just json as list of __dict__
+    expected_dict = {"data": {"request": "testing"}}
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
