@@ -438,6 +438,35 @@ def test_supports_post_raw_text_query_with_get_variable_values(client):
 '''
 
 
+'''
+@pytest.mark.django_db
+def test_allows_post_with_operation_name(client):
+    response = client.post(
+        url_string(),
+        j(
+            query="""
+        query helloYou { test(who: "You"), ...shared }
+        query helloWorld { test(who: "World"), ...shared }
+        query helloDolly { test(who: "Dolly"), ...shared }
+        fragment shared on QueryRoot {
+          shared: test(who: "Everyone")
+        }
+        """,
+            operationName="helloWorld",
+        ),
+        "application/json",
+    )
+
+    assert response.status_code == 200
+    # returns just json as __dict__
+    expected_dict = {
+        "data": {"test": "Hello World", "shared": "Hello Everyone"}
+    }
+    # directly compare all key,value for __dict__
+    assert response.json() == expected_dict
+'''
+
+
 @pytest.mark.django_db
 def test_batch_allows_post_with_operation_name(client):
     response = client.post(
