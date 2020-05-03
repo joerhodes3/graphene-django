@@ -9,8 +9,6 @@ SECRET_KEY = 1
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
-    #"django.contrib.messages",
-    #"django.contrib.staticfiles",
     'graphene_django',
     'graphene_django.rest_framework',
     'graphene_django.tests',
@@ -20,7 +18,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    #"django.contrib.messages.middleware.MessageMiddleware",
 ]
 
 DATABASES = {

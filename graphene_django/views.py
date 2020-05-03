@@ -206,21 +206,29 @@ class GraphQLView(APIView):
                     content_type = output
                 else:
                     content_type = "application/json"
-                # query -- !! unit test (also fail in 2.9.1, is unit test)
+                # URL args (unit test)
+                print(request.method)
+                print(request.body)
+                variables = request.GET.get("variables",None)
+                if variables:
+                    graphene_arguments.update({"variables": variables})
+                else:
+                    # get from curl and graphiql
+                    if request.method == "POST":
+                        body = json.loads(request.body)
+                        if "variables" in body:
+                            graphene_arguments.update({"variables": body["variables"]})
                 query = request.GET.get("query",None)
                 if query:
                     graphene_arguments.update({"query": query})
                 else:
-                    # get from curl
-                    query = request.POST.get("query",None)
-                    if query:
-                        graphene_arguments.update({"query": query})
-                    else:
-                        # graphiql is in body()
+                    # get from curl and graphiql
+                    if request.method == "POST":
                         body = json.loads(request.body)
                         if "query" in body:
                             graphene_arguments.update({"query": body["query"]})
 
+                print(graphene_arguments)
                 result, status_code = self.get_response(request, graphene_arguments)
 
             return HttpResponse(status=status_code, content=result, content_type=content_type)
