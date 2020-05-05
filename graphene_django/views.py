@@ -17,7 +17,7 @@ from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
 from graphql.type.schema import GraphQLSchema
 
-from graphene_django.settings import graphene_settings
+from .settings import graphene_settings
 
 
 class HttpError(Exception):
@@ -126,7 +126,7 @@ class GraphQLView(APIView):
             if GET_FROM_CDN is None:
                 # should not need
                 GET_FROM_CDN = "static"
-        except:
+        except Exception:
             GET_FROM_CDN = "static"  # this is diconnected by default
 
         graphiql_arguments = {}
@@ -153,13 +153,10 @@ class GraphQLView(APIView):
                 )
 
             data = self.parse_body(request)
-            try:
-                if request.session["use_graphiql"]:
+            use_graphiql = False
+            if "graphiql_was_used" in request.session:
+                if request.session["graphiql_was_used"]:
                     use_graphiql = True
-                else:
-                    use_graphiql = False
-            except:
-                use_graphiql = False
 
             show_graphiql = self.graphiql and self.can_display_graphiql(request, data)
             show_graphiql_headers = self.graphiql_headers and self.can_display_graphiql(
@@ -167,7 +164,7 @@ class GraphQLView(APIView):
             )
 
             if show_graphiql:
-                request.session["use_graphiql"] = True
+                request.session["graphiql_was_used"] = True
                 request.session.save()
 
                 graphiql_arguments.update({"auth_header": None})
@@ -190,8 +187,8 @@ class GraphQLView(APIView):
                 # not interactive, return data -- curl() or 2nd http (eval graphiql)
                 #    From both curl and http, but what about GET (url unit test)
                 if not ("HTTP_AUTHORIZATION" in request.META):
-                    try:
-                        # iql put in request.session -- restore AUTH
+                    if "HTTP_AUTHORIZATION" in request.session:
+                        # graphiql put in request.session -- restore AUTH
                         request.META.update(
                             {
                                 "HTTP_AUTHORIZATION": request.session[
@@ -199,29 +196,32 @@ class GraphQLView(APIView):
                                 ]
                             }
                         )
-                    except:
+                    else:
                         # no AUTH
                         request.META.update({"HTTP_AUTHORIZATION": None})
-                # print(request.META["HTTP_AUTHORIZATION"])
 
+                print("in view.....")
+                if request.method == "POST":
+                    body = dict(self.parse_body(request))
+                    print(body)
                 graphene_arguments = {}
                 # output type from URL -- for unit tests
+                content_type = "application/json"
                 output = request.GET.get("HTTP_ACCEPT", None)
                 if output:
-                    # override from unit test for 'text/html' -- will usually return JSON by default
                     content_type = output
                 else:
-                    content_type = "application/json"
+                    # get from curl and graphiql
+                    if request.method == "POST":
+                        if "HTTP_ACCEPT" in body:
+                            content_type = request.GET.get("HTTP_ACCEPT", None)
                 # URL args (unit test)
-                print(request.method)
-                print(request.body)
                 variables = request.GET.get("variables", None)
                 if variables:
                     graphene_arguments.update({"variables": variables})
                 else:
                     # get from curl and graphiql
                     if request.method == "POST":
-                        body = json.loads(request.body)
                         if "variables" in body:
                             graphene_arguments.update({"variables": body["variables"]})
                 query = request.GET.get("query", None)
@@ -230,7 +230,6 @@ class GraphQLView(APIView):
                 else:
                     # get from curl and graphiql
                     if request.method == "POST":
-                        body = json.loads(request.body)
                         if "query" in body:
                             graphene_arguments.update({"query": body["query"]})
 
@@ -328,11 +327,17 @@ class GraphQLView(APIView):
             except (TypeError, ValueError):
                 raise HttpError(HttpResponseBadRequest("POST body sent invalid JSON."))
 
-        elif content_type in [
-            "application/x-www-form-urlencoded",
-            "multipart/form-data",
-        ]:
-            return request.POST
+        elif (
+            content_type == "application/x-www-form-urlencoded"
+            or content_type == "multipart/form-data"
+        ):
+            print("why list???%s" % dict(request.POST))
+            args = {}
+            items = dict(request.POST)
+            for key, value in items.items():
+                args[key] = value[0]
+
+            return args
 
         return {}
 
@@ -449,8 +454,7 @@ def _get_auth_header(iQLView, request, graphiql_arguments):
 
             # return extra stuff to put in META tag for graphiql:
             request.session["HTTP_AUTHORIZATION"] = auth_header
-            request.session["use_graphiql"] = False
-            request.session["use_graphiql_headers"] = True
+            request.session["graphiql_was_used"] = True
             request.session.save()
             graphiql_arguments.update({"auth_header": auth_header})
             return iQLView.render_graphiql(request, graphiql_arguments)
