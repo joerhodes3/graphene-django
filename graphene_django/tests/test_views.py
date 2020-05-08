@@ -1,9 +1,3 @@
-# view() will be now a historical session -- "request.session" -- MIDDLEWARE to support this is no in test settings
-# TODO: auth headers a **url_parms?? -- may wat to be separate test, since is based on a lib for just us
-#    ? will put JWT in header
-###from socom_simplejwt.test import APITokenTestCase # then make this a part of class that ALL tests belong to
-#    ? will use diff graphql import (graphiql_headers) -- by GraphQLView.as_view(graphiql_headers=True) in urls ??
-#    -- also in settings.py INSTALLED_APPS
 import json
 import pytest
 
@@ -35,7 +29,7 @@ def test_graphiql_is_enabled(client):
     response = client.get(url_string(), HTTP_ACCEPT="text/html")
 
     assert response.status_code == 200
-    ##assert response["Content-Type"].split(";")[0] == "text/html"
+    assert response["Content-Type"].split(";")[0] == "text/html"
 
 
 @pytest.mark.django_db
@@ -43,19 +37,21 @@ def test_qfactor_graphiql(client):
     response = client.get(url_string(query="{test}", HTTP_ACCEPT="text/html",))
 
     assert response.status_code == 200
-    ##assert response["Content-Type"].split(";")[0] == "text/html"
+    assert response["Content-Type"].split(";")[0] == "text/html"
 
 
 @pytest.mark.django_db
 def test_qfactor_json(client):
     response = client.get(
         url_string(query="{test}", HTTP_ACCEPT="application/json",)
-    ).json()
+    )
 
+    assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World"}}
     # directly compare all key,value for __dict__
-    assert response == expected_dict
+    assert response.json() == expected_dict
 
 
 @pytest.mark.django_db
@@ -64,6 +60,7 @@ def test_allows_get_with_query_param(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -80,6 +77,7 @@ def test_allows_get_with_variable_values(client):
     )
 
     assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -102,6 +100,7 @@ def test_allows_get_with_operation_name(client):
     )
 
     assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World", "shared": "Hello Everyone"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -112,6 +111,7 @@ def test_reports_validation_errors(client):
     response = client.get(url_string(query="{ test, unknownOne, unknownTwo }"))
 
     assert response.status_code == 400
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [
             {
@@ -140,6 +140,7 @@ def test_errors_when_missing_operation_name(client):
     )
 
     assert response.status_code == 400
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [
             {
@@ -161,6 +162,7 @@ def test_errors_when_sending_a_mutation_via_get(client):
         )
     )
     assert response.status_code == 405
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [
             {"message": "Can only perform a mutation operation from a POST request."}
@@ -183,6 +185,7 @@ def test_errors_when_selecting_a_mutation_within_a_get(client):
     )
 
     assert response.status_code == 405
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [
             {"message": "Can only perform a mutation operation from a POST request."}
@@ -206,6 +209,7 @@ def test_allows_mutation_to_exist_within_a_get(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -217,6 +221,7 @@ def test_allows_post_with_json_encoding(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -229,6 +234,7 @@ def test_batch_allows_post_with_json_encoding(client):
     )
 
     assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
     # returns just json as __dict__
     expected_dict = [{"id": 1, "data": {"test": "Hello World"}, "status": 200}]
     # directly compare all key,value for __dict__ -- NOTE responce is list of stuff!
@@ -240,6 +246,7 @@ def test_batch_fails_if_is_empty(client):
     response = client.post(batch_url_string(), "[]", "application/json")
 
     assert response.status_code == 400
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [{"message": "Received an empty list in the batch request."}]
     }
@@ -256,6 +263,7 @@ def test_allows_sending_a_mutation_via_post(client):
     )
 
     assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"writeTest": {"test": "Hello World"}}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -271,6 +279,7 @@ def test_allows_post_with_url_encoding(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -289,6 +298,7 @@ def test_supports_post_json_query_with_string_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -308,6 +318,7 @@ def test_batch_supports_post_json_query_with_string_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = [{"id": 1, "data": {"test": "Hello Dolly"}, "status": 200}]
     # directly compare all key,value for __dict__ -- NOTE responce is list of stuff!
     assert response.json() == expected_dict
@@ -326,6 +337,7 @@ def test_supports_post_json_query_with_json_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -345,6 +357,7 @@ def test_batch_supports_post_json_query_with_json_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = [{"id": 1, "data": {"test": "Hello Dolly"}, "status": 200}]
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -365,6 +378,7 @@ def test_supports_post_url_encoded_query_with_string_variables(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -380,6 +394,7 @@ def test_supports_post_json_quey_with_get_variable_values(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -395,6 +410,7 @@ def test_post_url_encoded_query_with_get_variable_values(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -410,6 +426,7 @@ def test_supports_post_raw_text_query_with_get_variable_values(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello Dolly"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -435,6 +452,7 @@ def test_allows_post_with_operation_name(client):
 
     assert response.status_code == 200
     # returns just json as __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World", "shared": "Hello Everyone"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -461,6 +479,7 @@ def test_batch_allows_post_with_operation_name(client):
 
     assert response.status_code == 200
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = [
         {
             "id": 1,
@@ -489,6 +508,7 @@ def test_allows_post_with_get_operation_name(client):
 
     assert response.status_code == 200
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"test": "Hello World", "shared": "Hello Everyone"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -521,6 +541,7 @@ def test_handles_field_errors_caught_by_graphql(client):
     response = client.get(url_string(query="{thrower}"))
     assert response.status_code == 200
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "data": None,
         "errors": [
@@ -559,6 +580,7 @@ def test_handles_errors_caused_by_a_lack_of_query(client):
 
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "Must provide query string."}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -570,6 +592,7 @@ def test_handles_not_expected_json_bodies(client):
 
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [{"message": "The received data is not a valid JSON query."}]
     }
@@ -583,6 +606,7 @@ def test_handles_invalid_json_bodies(client):
 
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "POST body sent invalid JSON."}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -600,6 +624,7 @@ def test_handles_django_request_error(client, monkeypatch):
 
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "foo-bar"}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -614,6 +639,7 @@ def test_handles_plain_post_text(client):
     )
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "Must provide query string."}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -628,6 +654,7 @@ def test_handles_poorly_formed_variables(client):
     )
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "Variables are invalid JSON."}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -640,6 +667,7 @@ def test_handles_unsupported_http_methods(client):
     assert response.status_code == 405
     assert response["Allow"] == "GET, POST"
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {
         "errors": [{"message": "GraphQL only supports GET and POST requests."}]
     }
@@ -653,6 +681,7 @@ def test_handles_incomplete_json_bodies(client):
 
     assert response.status_code == 400
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"errors": [{"message": "POST body sent invalid JSON."}]}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -664,6 +693,7 @@ def test_passes_request_into_context_request(client):
 
     assert response.status_code == 200
     # returns just json as list of __dict__
+    assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = {"data": {"request": "testing"}}
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
@@ -675,6 +705,9 @@ def test_passes_request_into_context_request(client):
 def test_supports_pretty_printing(client):
     response = client.get(url_string(query="{test}"))
 
+    assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
+
     assert response.content.decode() == (
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
@@ -684,6 +717,9 @@ def test_supports_pretty_printing(client):
 def test_supports_pretty_printing_by_request(client):
     response = client.get(url_string(query="{test}", pretty="1"))
 
+    assert response.status_code == 200
+    assert response["Content-Type"].split(";")[0] == "application/json"
+
     assert response.content.decode() == (
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
@@ -691,3 +727,4 @@ def test_supports_pretty_printing_by_request(client):
 # TODO: more mutations and somesucriptions
 # TODO: fragment
 # TODO: META -- AUTH and __typename
+# ? CDN not static/ for DEBUG
