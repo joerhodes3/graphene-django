@@ -200,10 +200,8 @@ class GraphQLView(APIView):
                         # no AUTH
                         request.META.update({"HTTP_AUTHORIZATION": None})
 
-                print("in view.....")
                 if request.method == "POST":
                     body = dict(self.parse_body(request))
-                    print(body)
                 graphene_arguments = {}
                 # output type from URL -- for unit tests
                 content_type = "application/json"
@@ -232,8 +230,9 @@ class GraphQLView(APIView):
                     if request.method == "POST":
                         if "query" in body:
                             graphene_arguments.update({"query": body["query"]})
+                        if "operationName" in body:
+                            graphene_arguments.update({"operationName": body["operationName"]})
 
-                print(graphene_arguments)
                 result, status_code = self.get_response(request, graphene_arguments)
 
             return HttpResponse(

@@ -687,3 +687,7 @@ def test_supports_pretty_printing_by_request(client):
     assert response.content.decode() == (
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
+
+# TODO: more mutations and somesucriptions
+# TODO: fragment
+# TODO: META -- AUTH and __typename
