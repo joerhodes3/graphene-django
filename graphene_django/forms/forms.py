@@ -39,7 +39,7 @@ class GlobalIDMultipleChoiceField(MultipleChoiceField):
         GlobalIDFormField().clean(value)
         return True
 
-lass HeaderForm(forms.Form):
+class HeaderForm(forms.Form):
     # make a ChoiceField for 'JWT' and other methods -- use a widget?
     headers = forms.CharField(
         help_text="Enter auth method to be stored in the <head> as HTTP_AUTHORIZATION",
