@@ -39,15 +39,17 @@ class GlobalIDMultipleChoiceField(MultipleChoiceField):
         GlobalIDFormField().clean(value)
         return True
 
-class HeaderForm(forms.Form):
-    # make a ChoiceField for 'JWT' and other methods -- use a widget? 
-    headers = forms.CharField(help_text="Enter auth method to be stored in the <head> as HTTP_AUTHORIZATION", initial="JWT ")
+lass HeaderForm(forms.Form):
+    # make a ChoiceField for 'JWT' and other methods -- use a widget?
+    headers = forms.CharField(
+        help_text="Enter auth method to be stored in the <head> as HTTP_AUTHORIZATION",
+        initial="JWT ",
+    )
 
     def clean_auth(self):
-        data = self.cleaned_data['headers']
-        
-        #raise ValidationError()
+        data = self.cleaned_data["headers"]
+
+        # raise ValidationError()
 
         # Remember to always return the cleaned data.
         return data
-
