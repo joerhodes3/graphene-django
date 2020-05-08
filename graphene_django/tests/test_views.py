@@ -1,5 +1,6 @@
 import json
 import pytest
+
 try:
     from urllib import urlencode
 except ImportError:
@@ -721,6 +722,7 @@ def test_supports_pretty_printing_by_request(client):
     assert response.content.decode() == (
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
+
 
 # GraphQL SPEC:
 # TODO: more mutations and somesucriptions
