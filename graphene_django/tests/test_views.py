@@ -42,9 +42,7 @@ def test_qfactor_graphiql(client):
 
 @pytest.mark.django_db
 def test_qfactor_json(client):
-    response = client.get(
-        url_string(query="{test}", HTTP_ACCEPT="application/json",)
-    )
+    response = client.get(url_string(query="{test}", HTTP_ACCEPT="application/json",))
 
     assert response.status_code == 200
     # returns just json as __dict__
@@ -723,6 +721,7 @@ def test_supports_pretty_printing_by_request(client):
     assert response.content.decode() == (
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
+
 
 # TODO: more mutations and somesucriptions
 # TODO: fragment

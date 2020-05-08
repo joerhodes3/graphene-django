@@ -1,4 +1,12 @@
-# Created by https://www.gitignore.io
+models_UML.*
+.idea/
+venv/
+# IPython
+profile_default/
+ipython_config.py
+#VSCode Settings
+.vscode/
+GSOSMicroServicesLog.log
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

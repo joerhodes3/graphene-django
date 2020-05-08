@@ -231,7 +231,9 @@ class GraphQLView(APIView):
                         if "query" in body:
                             graphene_arguments.update({"query": body["query"]})
                         if "operationName" in body:
-                            graphene_arguments.update({"operationName": body["operationName"]})
+                            graphene_arguments.update(
+                                {"operationName": body["operationName"]}
+                            )
 
                 result, status_code = self.get_response(request, graphene_arguments)
 
