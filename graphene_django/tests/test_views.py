@@ -1,6 +1,5 @@
 import json
 import pytest
-
 try:
     from urllib import urlencode
 except ImportError:
@@ -34,6 +33,7 @@ def test_graphiql_is_enabled(client):
 
 @pytest.mark.django_db
 def test_qfactor_graphiql(client):
+
     response = client.get(url_string(query="{test}", HTTP_ACCEPT="text/html",))
 
     assert response.status_code == 200
@@ -357,6 +357,9 @@ def test_batch_supports_post_json_query_with_json_variables(client):
     # returns just json as __dict__
     assert response["Content-Type"].split(";")[0] == "application/json"
     expected_dict = [{"id": 1, "data": {"test": "Hello Dolly"}, "status": 200}]
+    expected_dict = [
+        {"id": 1, "data": {"test": "Hello Dolly"}, "status": 200}
+    ]
     # directly compare all key,value for __dict__
     assert response.json() == expected_dict
 
@@ -512,8 +515,8 @@ def test_allows_post_with_get_operation_name(client):
     assert response.json() == expected_dict
 
 
-# inherited/ ??? -- does not work cuurently
-"""
+'''
+# inherited/ ???
 @pytest.mark.django_db
 @pytest.mark.urls("graphene_django.tests.urls_inherited")
 def test_inherited_class_with_attributes_works(client):
@@ -531,7 +534,7 @@ def test_inherited_class_with_attributes_works(client):
     # Check graphiql works
     response = client.get(url_string(inherited_url), HTTP_ACCEPT="text/html")
     assert response.status_code == 200
-"""
+'''
 
 
 @pytest.mark.django_db
@@ -722,8 +725,10 @@ def test_supports_pretty_printing_by_request(client):
         "{\n" '  "data": {\n' '    "test": "Hello World"\n' "  }\n" "}"
     )
 
-
+# GraphQL SPEC:
 # TODO: more mutations and somesucriptions
 # TODO: fragment
-# TODO: META -- AUTH and __typename
-# ? CDN not static/ for DEBUG
+# TODO: META __typename
+# Additions:
+# META AUTH
+# ?not working? CDN not static/ for DEBUG

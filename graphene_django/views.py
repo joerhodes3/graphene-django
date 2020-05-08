@@ -17,7 +17,7 @@ from graphql.error import GraphQLError
 from graphql.execution import ExecutionResult
 from graphql.type.schema import GraphQLSchema
 
-from .settings import graphene_settings
+from graphene_django.settings import graphene_settings
 
 
 class HttpError(Exception):
